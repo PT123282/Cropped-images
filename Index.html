@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Cropper</title>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #image-preview {
+            max-width: 100%;
+            margin: 20px auto;
+            display: block;
+        }
+        .buttons {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Cropping Application</h1>
+    <input type="file" id="file-input" accept="image/*">
+    <img id="image-preview" style="display: none;">
+    <div class="buttons">
+        <button id="crop-button" style="display: none;">Crop and Upload</button>
+    </div>
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const imagePreview = document.getElementById('image-preview');
+        const cropButton = document.getElementById('crop-button');
+        let cropper;
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    imagePreview.src = reader.result;
+                    imagePreview.style.display = 'block';
+                    cropButton.style.display = 'block';
+
+                    // Destroy the previous cropper instance
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+
+                    // Create a new cropper instance
+                    cropper = new Cropper(imagePreview, {
+                        aspectRatio: 1,
+                        viewMode: 2
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        cropButton.addEventListener('click', () => {
+            if (cropper) {
+                cropper.getCroppedCanvas().toBlob((blob) => {
+                    const formData = new FormData();
+                    formData.append('croppedImage', blob, 'cropped_image.png');
+
+                    fetch('upload.php', {
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('Image cropped and uploaded successfully: ' + data.file);
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Upload Error:', error);
+                        alert('An error occurred while uploading the image.');
+                    });
+                }, 'image/png');
+            }
+        });
+    </script>
+</body>
+</html>
